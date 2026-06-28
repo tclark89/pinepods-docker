@@ -35,8 +35,8 @@ services:
 
       # Enable or Disable Debug Mode for additional Printing
       DEBUG_MODE: false
-      PUID: ${UID:-911}
-      PGID: ${GID:-911}
+      PUID: 1000
+      PGID: 1000
 
       # Add timezone configuration
       TZ: "America/Chicago"
@@ -44,7 +44,7 @@ services:
       - pinepods.env
     volumes:
       # Mount the download and backup locations on the server
-      - ./downloads:/opt/pinepods/downloads
+      - /mnt/public/Podcasts:/opt/pinepods/downloads
       - ./backups:/opt/pinepods/backups
     depends_on:
       - pinepods-db
