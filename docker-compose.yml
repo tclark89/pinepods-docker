@@ -1,24 +1,25 @@
 services:
-  db:
-    container_name: db
+  pinepods-db:
+    container_name: pinepods-db
     image: postgres:18
     environment:
-      POSTGRES_DB: pinepods_database
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: myS3curepass
       PGDATA: /var/lib/pgdata/pgdata
     volumes:
       - ./pgdata:/var/lib/pgdata
-    ports:
-      - "5432:5432"
+    #ports:
+    #  - "5432:5432"
     restart: always
+    env_file: 
+      - db.env
 
-  valkey:
+  pinepods-valkey:
+    container_name: pinepods-valkey
     image: valkey/valkey:8-alpine
-    ports:
-      - "6379:6379"
+    #ports:
+    #  - "6379:6379"
 
   pinepods:
+    container_name: pinepods
     image: madeofpendletonwool/pinepods:latest
     ports:
       - "8040:8040"
@@ -26,35 +27,36 @@ services:
       # Basic Server Info
       SEARCH_API_URL: 'https://search.pinepods.online/api/search'
       PEOPLE_API_URL: 'https://people.pinepods.online'
-      HOSTNAME: 'http://localhost:8040'
-      # Default Admin User Information
-      USERNAME: myadminuser01
-      PASSWORD: myS3curepass
-      FULLNAME: Pinepods Admin
-      EMAIL: user@pinepods.online
-      # Database Vars
-      DB_TYPE: postgresql
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: myS3curepass
-      DB_NAME: pinepods_database
+      HOSTNAME: 'http://pinepods.tyler-clark.com'
+      
       # Valkey Settings
-      VALKEY_HOST: valkey
+      VALKEY_HOST: pinepods-valkey
       VALKEY_PORT: 6379
+
       # Enable or Disable Debug Mode for additional Printing
       DEBUG_MODE: false
       PUID: ${UID:-911}
       PGID: ${GID:-911}
+
       # Add timezone configuration
       TZ: "America/Chicago"
+    env_file:
+      - pinepods.env
     volumes:
       # Mount the download and backup locations on the server
-      - /home/user/pinepods/downloads:/opt/pinepods/downloads
-      - /home/user/pinepods/backups:/opt/pinepods/backups
-      # Timezone volumes, HIGHLY optional. Read the timezone notes below
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
+      - ./downloads:/opt/pinepods/downloads
+      - ./backups:/opt/pinepods/backups
     depends_on:
-      - db
-      - valkey
+      - pinepods-db
+      - pinepods-valkey
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pinepods-https.rule=Host(`pinepods.tyler-clark.com`)
+      - traefik.http.routers.pinepods-https.tls=true
+      - traefik.http.routers.pinepods-https.tls.certresolver=cloudflare
+      - traefik.http.services.pinepods-https.loadbalancer.server.port=8040
+
+networks:
+  default:
+    external: true
+    name: frontend
